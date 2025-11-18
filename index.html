@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="bg-gray-900 text-white min-h-screen font-mono">
+<head>
+    <meta charset="utf-8">
+    <title>CountyControl</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-8">
+<h1 class="text-5xl mb-8 text-green-400">CountyControl</h1>
+
+<input id="link" placeholder="roblox://placeId=...&launchData=..." class="w-full p-4 bg-gray-800 rounded mb-4 text-lg">
+<button onclick="connect()" class="bg-green-600 px-8 py-4 rounded text-xl">Verbinden</button>
+
+<div id="log" class="bg-black p-6 h-96 overflow-y-auto rounded mt-6 text-sm"></div>
+<input id="cmd" placeholder="Befehl eingeben + Enter" class="w-full p-4 bg-gray-800 rounded mt-4 text-lg">
+
+<script>
+    let ws, psCode = '';
+
+    function connect() {
+        const link = document.getElementById('link').value;
+        try {
+            const params = new URLSearchParams(link.split('?')[1]);
+            const data = JSON.parse(decodeURIComponent(params.get('launchData')));
+            psCode = data.psCode;
+            document.getElementById('log').innerHTML = `<span class="text-green-400">PS-Code: ${psCode}</span><br>`;
+        } catch {
+            alert('Falscher Roblox-Link!');
+            return;
+        }
+
+        ws = new WebSocket('ws://' + location.host);
+        ws.onmessage = e => {
+            const d = JSON.parse(e.data);
+            if (d.output) {
+                document.getElementById('log').innerHTML += d.output + '<br>';
+                document.getElementById('log').scrollTop = 99999;
+            }
+        };
+    }
+
+    document.getElementById('cmd').addEventListener('keypress', e => {
+        if (e.key === 'Enter' && e.target.value && ws?.readyState === 1) {
+            const cmd = e.target.value;
+            document.getElementById('log').innerHTML += '&gt; ' + cmd + '<br>';
+            ws.send(JSON.stringify({ type: 'cmd', psCode, cmd }));
+            e.target.value = '';
+        }
+    });
+</script>
+</body>
+</html>
